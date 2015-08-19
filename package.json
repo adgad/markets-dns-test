@@ -5,7 +5,8 @@
     "denodeify": "^1.2.1",
     "forever": "^0.11.1",
     "ft-next-express": "^12.0.0",
-    "ft-next-logger": "^1.1.0"
+    "ft-next-logger": "^1.1.0",
+    "md5": "^2.0.0"
   },
   "devDependencies": {
     "chai": "^1.9.2",

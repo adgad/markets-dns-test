@@ -4,6 +4,7 @@
 var express = require('ft-next-express');
 var logger = require('ft-next-logger');
 var denodeify = require('denodeify');
+var md5 = require('md5');
 
 var dnsResolve = denodeify(require('dns').resolve);
 var dnsResolve4 = denodeify(require('dns').resolve4);
@@ -14,11 +15,33 @@ var app = express({
 	withHandlebars: false
 });
 
+function getPortfolioUrl() {
+	var domain = 'portfolio.ft.com';
+	var passportId = 4011101642;
+	return 'http://' + domain + '/webservices/v1/portfolios' +
+		[
+		'timeframes=oneDay|lifetime',
+		'userId=' + passportId,
+		'source=' + process.env.PORTFOLIO_API_KEY,
+		'sig=' + md5(passportId + process.env.PORTFOLIO_SALT)
+	].join('&');
+}
+
 var apiKey = process.env.MARKETS_APIKEY;
-var marketsUrl = 'http://markets.ft.com/research/webservices/securities/v1/quotes?symbols=pson:lse,mrkt';
-var portfolioUrl = 'http://portfolio.ft.com/webservices/v1/portfolios?timeframes=oneDay|lifetime&userId=4011101642&source=51d7791a57&sig=bb0777d0976b0333d76ab03c4098679b';
-var marketsHost = 'markets.ft.com';
-var portfolioHost = 'portfolio.ft.com';
+
+var tests = [
+	{
+		name: 'Markets',
+		url: 'http://markets.ft.com/research/webservices/securities/v1/quotes?symbols=pson:lse,mrkt',
+		host: 'markets.ft.com'
+	},
+	{
+		name: 'Portfolio',
+		url: getPortfolioUrl(),
+		host: 'portfolio.ft.com'
+	}
+]
+
 var opts = {
 	headers: {
 		'X-FT-Source': apiKey
@@ -33,107 +56,90 @@ app.get('/__gtg', function(req, res) {
 app.get('/test', function(req, res, next) {
 	var start = new Date().getTime();
 	var promises = [];
-	promises.push(fetch(marketsUrl, opts)
+	tests.forEach(function(test) {
+		promises.push(fetch(test.url, opts)
 		.then(function() {
 			var timeTaken = new Date().getTime() - start;
-			console.log('Time taken for markets fetch call', timeTaken);
 			return {
-				name: "Markets Data fetch call",
+				name: test.name,
+				test: "fetch(url)",
 				time: timeTaken
 			}
 		})
 	);
 
-	promises.push(fetch(portfolioUrl, opts)
+	promises.push(dnsResolve(test.host).then(function() {
+		var timeTaken = new Date().getTime() - start;
+			return {
+				name: test.name,
+				test: "dns.resolve",
+				time: timeTaken
+			}
+		})
+	);
+
+	promises.push(dnsResolve4(test.host).then(function() {
+		var timeTaken = new Date().getTime() - start;
+			return {
+				name: test.name,
+				test: "dns.resolve4",
+				time: timeTaken
+			}
+		})
+	);
+
+	promises.push(dnsLookup(test.host).then(function() {
+		var timeTaken = new Date().getTime() - start;
+			return {
+				name: test.name,
+				test: "dns.lookup",
+				time: timeTaken
+			}
+		})
+	);
+
+	promises.push(dnsLookup(test.host, 4).then(function() {
+		var timeTaken = new Date().getTime() - start;
+			return {
+				name: test.name,
+				test: "dns.lookup(..., 4)",
+				time: timeTaken
+			}
+		})
+	);
+
+	promises.push(dnsResolve(test.host)
+		.then(function(ip) {
+			return fetch(test.url.replace(test.host, ip));
+		})
 		.then(function() {
-			var timeTaken = new Date().getTime() - start;
-			console.log('Time taken for portfolio fetch call', timeTaken);
+		var timeTaken = new Date().getTime() - start;
 			return {
-				name: "Portfolio Data fetch call",
+				name: test.name,
+				test: "dns.resolve + fetch(ip)",
 				time: timeTaken
 			}
 		})
 	);
 
-	promises.push(dnsResolve(marketsHost).then(function() {
+	promises.push(dnsLookup(test.host, 4)
+		.then(function(ip) {
+			return fetch(test.url.replace(test.host, ip));
+		})
+		.then(function() {
 		var timeTaken = new Date().getTime() - start;
-			console.log('Time taken for markets dns resolve', timeTaken);
 			return {
-				name: "Markets DNS Resolve",
+				name: test.name,
+				test: "dns.lookup(..., 4) + fetch(ip)",
 				time: timeTaken
 			}
 		})
 	);
 
-	promises.push(dnsResolve4(marketsHost).then(function() {
-		var timeTaken = new Date().getTime() - start;
-			console.log('Time taken for markets dns resolve4', timeTaken);
-			return {
-				name: "Markets DNS Resolve4",
-				time: timeTaken
-			}
-		})
-	);
+	return promises;
 
-	promises.push(dnsLookup(marketsHost).then(function() {
-		var timeTaken = new Date().getTime() - start;
-			console.log('Time taken for markets dns lookup', timeTaken);
-			return {
-				name: "Markets DNS Lookup",
-				time: timeTaken
-			}
-		})
-	);
+});
 
-	promises.push(dnsLookup(marketsHost, 4).then(function() {
-		var timeTaken = new Date().getTime() - start;
-			console.log('Time taken for markets dns lookup 4', timeTaken);
-			return {
-				name: "Markets DNS Lookup 4",
-				time: timeTaken
-			}
-		})
-	);
-
-	promises.push(dnsResolve(portfolioHost).then(function() {
-		var timeTaken = new Date().getTime() - start;
-			console.log('Time taken for portfolio dns resolve', timeTaken);
-			return {
-				name: "Portfolio DNS Resolve",
-				time: timeTaken
-			}
-		})
-	);
-
-	promises.push(dnsResolve4(portfolioHost).then(function() {
-		var timeTaken = new Date().getTime() - start;
-			console.log('Time taken for portfolio dns resolve4', timeTaken);
-			return {
-				name: "Portfolio DNS Resolve4",
-				time: timeTaken
-			}
-		})
-	);
-
-	promises.push(dnsLookup(portfolioHost).then(function() {
-		var timeTaken = new Date().getTime() - start;
-			console.log('Time taken for portfolio dns lookup', timeTaken);
-			return {
-				name: "Portfolio DNS Lookup",
-				time: timeTaken
-			}
-		})
-	);
-
-	promises.push(dnsLookup(portfolioHost, 4).then(function() {
-		var timeTaken = new Date().getTime() - start;
-			console.log('Time taken for portfolio dns lookup 4', timeTaken);
-			return {
-				name: "Portfolio DNS Lookup 4",
-				time: timeTaken
-			}
-		})
-	);
 
 	Promise.all(promises).then(function(results) {
 		res.send(results);
