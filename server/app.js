@@ -18,28 +18,33 @@ var app = express({
 function getPortfolioUrl() {
 	var domain = 'portfolio.ft.com';
 	var passportId = 4011101642;
-	return 'http://' + domain + '/webservices/v1/portfolios' +
-		[
-		'timeframes=oneDay|lifetime',
-		'userId=' + passportId,
-		'source=' + process.env.PORTFOLIO_API_KEY,
-		'sig=' + md5(passportId + process.env.PORTFOLIO_SALT)
+	return 'http://' + domain + '/webservices/v1/portfolios/?' +
+	[
+	'timeframes=oneDay|lifetime',
+	'userId=' + passportId,
+	'source=' + process.env.PORTFOLIO_API_KEY,
+	'sig=' + md5(passportId + process.env.PORTFOLIO_SALT)
 	].join('&');
 }
 
 var apiKey = process.env.MARKETS_APIKEY;
 
 var tests = [
-	{
-		name: 'Markets',
-		url: 'http://markets.ft.com/research/webservices/securities/v1/quotes?symbols=pson:lse,mrkt',
-		host: 'markets.ft.com'
-	},
-	{
-		name: 'Portfolio',
-		url: getPortfolioUrl(),
-		host: 'portfolio.ft.com'
-	}
+{
+	name: 'Markets',
+	url: 'http://markets.ft.com/research/webservices/securities/v1/quotes?symbols=pson:lse,mrkt',
+	host: 'markets.ft.com'
+},
+{
+	name: 'Portfolio',
+	url: getPortfolioUrl(),
+	host: 'portfolio.ft.com'
+},
+{
+	name: 'Flags',
+	url: 'http://ft-next-feature-flags-prod.s3-website-eu-west-1.amazonaws.com/flags/__flags.json',
+	host: 'ft-next-feature-flags-prod.s3-website-eu-west-1.amazonaws.com'
+}
 ]
 
 var opts = {
@@ -58,92 +63,105 @@ app.get('/test', function(req, res, next) {
 	var promises = [];
 	tests.forEach(function(test) {
 		promises.push(fetch(test.url, opts)
-		.then(function() {
+			.then(function(res) {
+				var timeTaken = new Date().getTime() - start;
+				return {
+					name: test.name,
+					test: "fetch(url)",
+					time: timeTaken,
+					status: res.status
+				}
+			})
+			);
+
+		promises.push(dnsResolve(test.host).then(function(ip) {
 			var timeTaken = new Date().getTime() - start;
 			return {
 				name: test.name,
-				test: "fetch(url)",
-				time: timeTaken
-			}
-		})
-	);
-
-	promises.push(dnsResolve(test.host).then(function() {
-		var timeTaken = new Date().getTime() - start;
-			return {
-				name: test.name,
 				test: "dns.resolve",
-				time: timeTaken
+				time: timeTaken,
+				ip: ip
 			}
 		})
-	);
+		);
 
-	promises.push(dnsResolve4(test.host).then(function() {
-		var timeTaken = new Date().getTime() - start;
+		promises.push(dnsResolve4(test.host).then(function(ip) {
+			var timeTaken = new Date().getTime() - start;
 			return {
 				name: test.name,
 				test: "dns.resolve4",
-				time: timeTaken
+				time: timeTaken,
+				ip: ip
 			}
 		})
-	);
+		);
 
-	promises.push(dnsLookup(test.host).then(function() {
-		var timeTaken = new Date().getTime() - start;
+		promises.push(dnsLookup(test.host).then(function(ip) {
+			var timeTaken = new Date().getTime() - start;
 			return {
 				name: test.name,
 				test: "dns.lookup",
-				time: timeTaken
+				time: timeTaken,
+				ip: ip
 			}
 		})
-	);
+		);
 
-	promises.push(dnsLookup(test.host, 4).then(function() {
-		var timeTaken = new Date().getTime() - start;
+		promises.push(dnsLookup(test.host, 4).then(function(ip) {
+			var timeTaken = new Date().getTime() - start;
 			return {
 				name: test.name,
 				test: "dns.lookup(..., 4)",
-				time: timeTaken
+				time: timeTaken,
+				ip: ip
 			}
 		})
-	);
+		);
 
-	promises.push(dnsResolve(test.host)
-		.then(function(ip) {
-			return fetch(test.url.replace(test.host, ip));
-		})
-		.then(function() {
-		var timeTaken = new Date().getTime() - start;
-			return {
-				name: test.name,
-				test: "dns.resolve + fetch(ip)",
-				time: timeTaken
-			}
-		})
-	);
+		promises.push(dnsResolve(test.host)
+			.then(function(ip) {
+				if(Array.isArray(ip)) {
+					ip = ip[0];
+				}
+				return fetch(test.url.replace(test.host, ip), opts);
+			})
+			.then(function(res) {
+				var timeTaken = new Date().getTime() - start;
+				return {
+					name: test.name,
+					test: "dns.resolve + fetch(ip)",
+					time: timeTaken,
+					status: res.status
+				}
+			})
+			);
 
-	promises.push(dnsLookup(test.host, 4)
-		.then(function(ip) {
-			return fetch(test.url.replace(test.host, ip));
-		})
-		.then(function() {
-		var timeTaken = new Date().getTime() - start;
-			return {
-				name: test.name,
-				test: "dns.lookup(..., 4) + fetch(ip)",
-				time: timeTaken
-			}
-		})
-	);
+		promises.push(dnsLookup(test.host, 4)
+			.then(function(ip) {
+				if(Array.isArray(ip)) {
+					ip = ip[0];
+				}
+				return fetch(test.url.replace(test.host, ip), opts);
+			})
+			.then(function(res) {
+				var timeTaken = new Date().getTime() - start;
+				return {
+					name: test.name,
+					test: "dns.lookup(..., 4) + fetch(ip)",
+					time: timeTaken,
+					status: res.status
+				}
+			})
+			);
 
-	return promises;
+		return promises;
 
-});
-
-
-	Promise.all(promises).then(function(results) {
-		res.send(results);
 	});
+
+
+Promise.all(promises).then(function(results) {
+	res.send(results);
+});
 
 });
 
