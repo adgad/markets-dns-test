@@ -3,6 +3,7 @@
 
 var express = require('ft-next-express');
 var logger = require('ft-next-logger');
+var metrics = express.metrics;
 var denodeify = require('denodeify');
 var md5 = require('md5');
 
@@ -19,6 +20,7 @@ var dnsResolve4 = denodeify(require('dns').resolve4);
 var dnsLookup = denodeify(require('dns').lookup);
 
 var app = express({
+	name: "markets-dns-test",
 	withFlags: false,
 	withHandlebars: false
 });
@@ -41,7 +43,7 @@ var tests = [
 {
 	name: 'Markets',
 	url: 'http://markets.ft.com/research/webservices/securities/v1/quotes?symbols=pson:lse,mrkt',
-	host: 'markets.ft.com'
+	host: 'markets.ft.com',
 },
 {
 	name: 'Portfolio',
@@ -81,7 +83,7 @@ app.get('/test', function(req, res, next) {
 					status: res.status
 				}
 			})
-			);
+		);
 
 		promises.push(dnsResolve(test.host).then(function(ip) {
 			var timeTaken = new Date().getTime() - start;
@@ -145,6 +147,25 @@ app.get('/test', function(req, res, next) {
 			})
 			);
 
+		promises.push(dnsLookup(test.host)
+			.then(function(ip) {
+				if(Array.isArray(ip)) {
+					ip = ip[0];
+				}
+				return fetch(test.url.replace(test.host, ip), opts);
+			})
+			.then(function(res) {
+				var timeTaken = new Date().getTime() - start;
+				app.metrics
+				return {
+					name: test.name,
+					test: "dns.lookup() + fetch(ip)",
+					time: timeTaken,
+					status: res.status
+				}
+			})
+		);
+
 		promises.push(dnsLookup(test.host, 4)
 			.then(function(ip) {
 				if(Array.isArray(ip)) {
@@ -154,6 +175,7 @@ app.get('/test', function(req, res, next) {
 			})
 			.then(function(res) {
 				var timeTaken = new Date().getTime() - start;
+				app.metrics
 				return {
 					name: test.name,
 					test: "dns.lookup(..., 4) + fetch(ip)",
@@ -161,7 +183,7 @@ app.get('/test', function(req, res, next) {
 					status: res.status
 				}
 			})
-			);
+		);
 
 		return promises;
 

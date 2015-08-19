@@ -1,5 +1,5 @@
 {
-  "name": "ft-next-markets-proxy-api",
+  "name": "markets-dns-test",
   "main": "server/app.js",
   "dependencies": {
     "denodeify": "^1.2.1",
