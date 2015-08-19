@@ -1,0 +1,13 @@
+{
+	"error": {
+		"code": 400,
+		"message": "Missing or invalid parameters",
+		"errors": [
+			{
+				"reason": "InvalidParameter",
+				"message": "There are no matches on any of the symbols provided."
+			}
+		]
+	},
+	"timeGenerated": "2014-12-10T16:38:39"
+}
