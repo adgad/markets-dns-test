@@ -10,6 +10,8 @@ var dnsResolve = denodeify(require('dns').resolve);
 var dnsResolve4 = denodeify(require('dns').resolve4);
 var dnsLookup = denodeify(require('dns').lookup);
 
+var DNSCache = require('dnscache');
+
 var app = express({
 	withFlags: false,
 	withHandlebars: false
@@ -59,6 +61,14 @@ app.get('/__gtg', function(req, res) {
 });
 
 app.get('/test', function(req, res, next) {
+
+	if(req.query.dnscache) {
+		var dnscache = require('dnscache')({
+    	"enable" : true,
+		  "ttl" : 300,
+		  "cachesize" : 1000
+	  });
+	}
 	var start = new Date().getTime();
 	var promises = [];
 	tests.forEach(function(test) {
