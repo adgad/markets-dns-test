@@ -68,6 +68,9 @@ app.get('/test', function(req, res, next) {
 		  "ttl" : 300,
 		  "cachesize" : 1000
 	  });
+	  dnsResolve = denodeify(dnscache.resolve);
+		dnsResolve4 = denodeify(dnscache.resolve4);
+		dnsLookup = denodeify(dnscache.lookup);
 	}
 	var start = new Date().getTime();
 	var promises = [];
