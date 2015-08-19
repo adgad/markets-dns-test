@@ -40,21 +40,26 @@ function getPortfolioUrl() {
 var apiKey = process.env.MARKETS_APIKEY;
 
 var tests = [
-{
-	name: 'Markets',
-	url: 'http://markets.ft.com/research/webservices/securities/v1/quotes?symbols=pson:lse,mrkt',
-	host: 'markets.ft.com',
-},
-{
-	name: 'Portfolio',
-	url: getPortfolioUrl(),
-	host: 'portfolio.ft.com'
-},
-{
-	name: 'Flags',
-	url: 'http://ft-next-feature-flags-prod.s3-website-eu-west-1.amazonaws.com/flags/__flags.json',
-	host: 'ft-next-feature-flags-prod.s3-website-eu-west-1.amazonaws.com'
-}
+	{
+		name: 'Markets',
+		url: 'http://markets.ft.com/research/webservices/securities/v1/quotes?symbols=pson:lse,mrkt',
+		host: 'markets.ft.com',
+	},
+	{
+		name: 'Portfolio',
+		url: getPortfolioUrl(),
+		host: 'portfolio.ft.com'
+	},
+	{
+		name: 'Flags (S3)',
+		url: 'http://ft-next-feature-flags-prod.s3-website-eu-west-1.amazonaws.com/flags/__flags.json',
+		host: 'ft-next-feature-flags-prod.s3-website-eu-west-1.amazonaws.com'
+	},
+	{
+		name: 'AB (Heroku)',
+		url: 'http://ft-next-ab.herokuapp.com/',
+		host: 'ft-next-ab.herokuapp.com'
+	}
 ]
 
 var opts = {
