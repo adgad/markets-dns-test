@@ -2,6 +2,7 @@
 'use strict';
 
 var express = require('ft-next-express');
+var logger = require('ft-next-logger');
 var denodeify = require('denodeify');
 
 var dnsResolve = denodeify(require('dns').resolve);
