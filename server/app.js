@@ -54,6 +54,11 @@ var tests = [
 		name: 'Flags (S3)',
 		url: 'http://ft-next-feature-flags-prod.s3-website-eu-west-1.amazonaws.com/flags/__flags.json',
 		host: 'ft-next-feature-flags-prod.s3-website-eu-west-1.amazonaws.com'
+	},
+	{
+		name: 'AB (Heroku)',
+		url: 'http://ft-next-ab.herokuapp.com/',
+		host: 'ft-next-ab.herokuapp.com'
 	}
 ]
 
