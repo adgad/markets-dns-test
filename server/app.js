@@ -71,8 +71,9 @@ app.get('/__gtg', function(req, res) {
 app.get('/test', function(req, res, next) {
 
 	var start = new Date().getTime();
-	var promises = [];
-	tests.forEach(function(test) {
+	var testResults = tests.map(function(test) {
+		var promises = [];
+
 		promises.push(fetch(test.url, opts)
 			.then(function(res) {
 				var timeTaken = new Date().getTime() - start;
@@ -145,8 +146,25 @@ app.get('/test', function(req, res, next) {
 					status: res.status
 				}
 			})
-			);
+		);
 
+		promises.push(dnsResolve4(test.host)
+			.then(function(ip) {
+				if(Array.isArray(ip)) {
+					ip = ip[0];
+				}
+				return fetch(test.url.replace(test.host, ip), opts);
+			})
+			.then(function(res) {
+				var timeTaken = new Date().getTime() - start;
+				return {
+					name: test.name,
+					test: "dns.resolve4 + fetch(ip)",
+					time: timeTaken,
+					status: res.status
+				}
+			})
+		);
 		promises.push(dnsLookup(test.host)
 			.then(function(ip) {
 				if(Array.isArray(ip)) {
@@ -165,6 +183,8 @@ app.get('/test', function(req, res, next) {
 				}
 			})
 		);
+
+
 
 		promises.push(dnsLookup(test.host, 4)
 			.then(function(ip) {
@@ -185,14 +205,14 @@ app.get('/test', function(req, res, next) {
 			})
 		);
 
-		return promises;
+		return Promise.all(promises);
 
 	});
 
 
-Promise.all(promises).then(function(results) {
-	res.send(results);
-});
+	Promise.all(testResults).then(function(results) {
+		res.send(results);
+	});
 
 });
 
