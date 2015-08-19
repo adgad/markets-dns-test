@@ -6,11 +6,17 @@ var logger = require('ft-next-logger');
 var denodeify = require('denodeify');
 var md5 = require('md5');
 
+if(process.env.DNSCACHE) {
+	var dnscache = require('dnscache')({
+  	"enable" : true,
+	  "ttl" : 300,
+	  "cachesize" : 1000
+  });
+}
+
 var dnsResolve = denodeify(require('dns').resolve);
 var dnsResolve4 = denodeify(require('dns').resolve4);
 var dnsLookup = denodeify(require('dns').lookup);
-
-var DNSCache = require('dnscache');
 
 var app = express({
 	withFlags: false,
@@ -62,16 +68,6 @@ app.get('/__gtg', function(req, res) {
 
 app.get('/test', function(req, res, next) {
 
-	if(req.query.dnscache) {
-		var dnscache = require('dnscache')({
-    	"enable" : true,
-		  "ttl" : 300,
-		  "cachesize" : 1000
-	  });
-	  dnsResolve = denodeify(dnscache.resolve);
-		dnsResolve4 = denodeify(dnscache.resolve4);
-		dnsLookup = denodeify(dnscache.lookup);
-	}
 	var start = new Date().getTime();
 	var promises = [];
 	tests.forEach(function(test) {
