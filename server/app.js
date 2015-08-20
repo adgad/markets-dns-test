@@ -1,9 +1,8 @@
 /* global process */
 'use strict';
-
-var express = require('ft-next-express');
-var logger = require('ft-next-logger');
-var metrics = express.metrics;
+require('es6-promise');
+require('isomorphic-fetch');
+var express = require('express');
 var denodeify = require('denodeify');
 var md5 = require('md5');
 
@@ -19,11 +18,7 @@ var dnsResolve = denodeify(require('dns').resolve);
 var dnsResolve4 = denodeify(require('dns').resolve4);
 var dnsLookup = denodeify(require('dns').lookup);
 
-var app = express({
-	name: "markets-dns-test",
-	withFlags: false,
-	withHandlebars: false
-});
+var app = express();
 
 function getPortfolioUrl() {
 	var domain = 'portfolio.ft.com';
@@ -179,7 +174,6 @@ app.get('/test', function(req, res, next) {
 			})
 			.then(function(res) {
 				var timeTaken = new Date().getTime() - start;
-				app.metrics
 				return {
 					name: test.name,
 					test: "dns.lookup() + fetch(ip)",
@@ -200,7 +194,6 @@ app.get('/test', function(req, res, next) {
 			})
 			.then(function(res) {
 				var timeTaken = new Date().getTime() - start;
-				app.metrics
 				return {
 					name: test.name,
 					test: "dns.lookup(..., 4) + fetch(ip)",
@@ -223,5 +216,5 @@ app.get('/test', function(req, res, next) {
 
 var port = process.env.PORT || 3000;
 app.listen(port, function() {
-	logger.info('Listening on ' + port);
+	console.info('Listening on ' + port);
 });
